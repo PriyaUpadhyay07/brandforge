@@ -1,0 +1,1 @@
+- [Vercel monorepo handoff](vercel-monorepo-handoff.md) — verify the deployed source commit and build output when a Vercel project serves an unexpected 404.

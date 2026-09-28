@@ -60,7 +60,7 @@ function useTheme() {
 }
 
 function Logo({ light = false }: { light?: boolean }) {
-  return <Link href="/" className="flex items-center gap-2.5" data-testid="link-logo"><span className="grid h-8 w-8 place-items-center rounded-lg bg-[#D8F05A] text-[#252A3D]"><Sparkles size={16} strokeWidth={2.6} /></span><span className={`bf-display text-[19px] font-bold tracking-tight ${light ? 'text-[#F5F0E5]' : 'text-foreground'}`}>brandforge</span></Link>;
+  return <Link href="/" className="flex items-center gap-2.5" data-testid="link-logo"><img src="/brandforge-bf.svg" alt="BF" className="h-8 w-8 shrink-0" /><span className={`bf-display text-[19px] font-bold tracking-tight ${light ? 'text-[#F5F0E5]' : 'text-foreground'}`}>brandforge</span></Link>;
 }
 
 function Shell({ children }: { children: ReactNode }) {
