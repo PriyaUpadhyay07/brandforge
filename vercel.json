@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "installCommand": "pnpm install --frozen-lockfile",
+  "buildCommand": "pnpm --filter @workspace/brandforge run build",
+  "outputDirectory": "artifacts/brandforge/dist/public",
+  "framework": "vite",
+  "rewrites": [
+    { "source": "/builder", "destination": "/index.html" },
+    { "source": "/system", "destination": "/index.html" },
+    { "source": "/kits", "destination": "/index.html" },
+    { "source": "/export", "destination": "/index.html" }
+  ]
+}

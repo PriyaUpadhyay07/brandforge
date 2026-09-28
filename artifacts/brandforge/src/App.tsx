@@ -21,6 +21,37 @@ const sampleKits: BrandKit[] = [
   { id: 102, brandName: 'Common Ground', industry: 'Independent hospitality', primaryColor: '#E7A77A', personality: 'Witty, generous, a little unexpected', headingFont: 'Fraunces', bodyFont: 'DM Sans', tagline: 'Pull up a chair.', toneNotes: 'Sound like a thoughtful host.', createdAt: '2024-03-12T00:00:00Z' },
   { id: 103, brandName: 'Arcform', industry: 'Architecture studio', primaryColor: '#A9C5E8', personality: 'Precise, human, forward-looking', headingFont: 'Bricolage Grotesque', bodyFont: 'Space Mono', tagline: 'The shape of what is next.', toneNotes: 'Measured, visual, confident.', createdAt: '2024-02-26T00:00:00Z' },
 ];
+const LOCAL_KITS_KEY = 'brandforge-local-kits';
+
+function getLocalKits(): BrandKit[] {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(LOCAL_KITS_KEY) || '[]');
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveLocalKit(input: BrandKitInput): BrandKit {
+  const kit: BrandKit = {
+    id: Date.now(),
+    brandName: input.brandName,
+    industry: input.industry,
+    primaryColor: input.primaryColor,
+    personality: input.personality,
+    headingFont: input.headingFont,
+    bodyFont: input.bodyFont,
+    tagline: input.tagline ?? null,
+    toneNotes: input.toneNotes ?? null,
+    createdAt: new Date().toISOString(),
+  };
+  localStorage.setItem(LOCAL_KITS_KEY, JSON.stringify([...getLocalKits(), kit]));
+  return kit;
+}
+
+function removeLocalKit(id: number) {
+  localStorage.setItem(LOCAL_KITS_KEY, JSON.stringify(getLocalKits().filter((kit) => kit.id !== id)));
+}
 
 function useTheme() {
   const [dark, setDark] = useState(() => localStorage.getItem('brandforge-theme') === 'dark');
@@ -66,7 +97,8 @@ function PageHeading({ eyebrow, title, detail, action }: { eyebrow: string; titl
 
 function Landing() {
   const { data: kits, isLoading, isError, refetch } = useListBrandKits();
-  const examples = kits?.length ? kits.slice(0, 3) : sampleKits;
+  const localKits = getLocalKits();
+  const examples = kits?.length ? kits.slice(0, 3) : (localKits.length ? localKits.slice(0, 3) : sampleKits);
   return <div className="bf-content">
     <div className="mb-20 flex items-center justify-between md:hidden"><Logo /><span className="bf-eyebrow">A brand in 30 seconds</span></div>
     <section className="relative grid items-center gap-16 overflow-hidden py-14 lg:grid-cols-[1.05fr_.95fr] lg:py-24">
@@ -91,7 +123,24 @@ function Builder() {
   const create = useCreateBrandKit();
   const set = (key: keyof BrandKitInput, value: string) => setForm((current) => ({ ...current, [key]: value }));
   const canNext = step === 1 ? !!form.brandName && !!form.industry : step === 2 ? !!form.primaryColor && !!form.personality : !!form.headingFont && !!form.bodyFont;
-  const submit = () => { setError(''); create.mutate({ data: form }, { onSuccess: (kit) => { queryClient.invalidateQueries({ queryKey: getListBrandKitsQueryKey() }); localStorage.setItem('brandforge-current-kit', JSON.stringify(kit)); setLocation('/system'); }, onError: () => setError('We could not save that kit. Check your connection and try again.') }); };
+  const submit = () => {
+    setError('');
+    create.mutate(
+      { data: form },
+      {
+        onSuccess: (kit) => {
+          queryClient.invalidateQueries({ queryKey: getListBrandKitsQueryKey() });
+          localStorage.setItem('brandforge-current-kit', JSON.stringify(kit));
+          setLocation('/system');
+        },
+        onError: () => {
+          const localKit = saveLocalKit(form);
+          localStorage.setItem('brandforge-current-kit', JSON.stringify(localKit));
+          setLocation('/system');
+        },
+      },
+    );
+  };
   return <div className="bf-content"><PageHeading eyebrow="New identity / 30 seconds" title="Build your signal." detail="Three quick choices. One usable system. You can always come back and tune the edges." /><div className="mb-10 flex max-w-2xl items-center justify-between">{[['01','The basics'],['02','The energy'],['03','The type']].map(([num, label], index) => <div key={num} className="flex items-center gap-3"><div className="bf-step" data-active={step === index + 1} data-done={step > index + 1}><span className="bf-step-dot">{step > index + 1 ? <Check size={13} /> : num}</span><span className={`hidden text-xs font-bold md:block ${step === index + 1 ? 'text-foreground' : 'text-muted-foreground'}`}>{label}</span></div>{index < 2 && <div className={`mx-2 h-px w-10 md:w-24 ${step > index + 1 ? 'bg-[#D8F05A]' : 'bg-border'}`} />}</div>)}</div>
     <div className="grid gap-6 lg:grid-cols-[1fr_340px]"><div className="bf-card p-6 md:p-9">
       {step === 1 && <div className="bf-reveal"><div className="bf-eyebrow">01 / Orient</div><h2 className="bf-display mt-3 text-3xl font-bold">What are we calling it?</h2><p className="mt-2 text-sm text-muted-foreground">Start with the words people will remember.</p><div className="mt-8 grid gap-5"><div><label className="bf-label">Brand name</label><input autoFocus className="bf-input" value={form.brandName} onChange={e => set('brandName', e.target.value)} placeholder="e.g. Morrow" data-testid="input-brand-name" /></div><div><label className="bf-label">Industry or category</label><select className="bf-input" value={form.industry} onChange={e => set('industry', e.target.value)} data-testid="input-industry"><option value="">Choose an industry</option>{['Tech','Food & Beverage','Fashion','Health','Finance','Creative'].map(option => <option key={option}>{option}</option>)}</select></div><div><label className="bf-label">Optional tagline</label><input className="bf-input" value={form.tagline ?? ''} onChange={e => set('tagline', e.target.value)} placeholder="A few words worth repeating" data-testid="input-tagline" /></div></div></div>}
@@ -148,10 +197,12 @@ function VoiceCard({ kit, voice, onGenerate, pending, error }: { kit: BrandKit; 
 function EmptySystem() { return <div className="bf-content"><div className="bf-card flex min-h-[55vh] flex-col items-center justify-center p-8 text-center"><Sparkles className="text-[#8C9652]" size={30} /><h1 className="bf-display mt-5 text-4xl font-bold">Nothing forged yet.</h1><p className="mt-3 max-w-sm text-sm leading-6 text-muted-foreground">Start with a name and a point of view. Your complete system will land here.</p><Link href="/builder" className="bf-btn bf-btn-accent mt-7" data-testid="link-empty-start">Start a new identity <ArrowRight size={15} /></Link></div></div>; }
 
 function KitsPage() {
-  const { data, isLoading, isError, refetch } = useListBrandKits(); const queryClient = useQueryClient(); const remove = useDeleteBrandKit(); const create = useCreateBrandKit(); const [search, setSearch] = useState(''); const [, setLocation] = useLocation();
-  const kits = (data || []).filter(k => `${k.brandName} ${k.industry}`.toLowerCase().includes(search.toLowerCase())); const shown = data?.length ? kits : sampleKits;
-  const duplicate = (kit: BrandKit) => create.mutate({ data: { ...kit, brandName: `${kit.brandName} / Copy`, tagline: kit.tagline, toneNotes: kit.toneNotes } }, { onSuccess: () => queryClient.invalidateQueries({ queryKey: getListBrandKitsQueryKey() }) });
-  return <div className="bf-content"><PageHeading eyebrow="Archive / Saved kits" title="Your little library." detail="Every sharp decision, kept close. Open a kit to revisit its system or duplicate it to explore a new direction." action={<Link href="/builder" className="bf-btn bf-btn-accent" data-testid="link-new-kit"><Plus size={15} /> New kit</Link>} /><div className="mb-6 flex items-center gap-3"><div className="relative max-w-sm flex-1"><Search size={15} className="absolute left-3 top-3.5 text-muted-foreground" /><input className="bf-input pl-9" placeholder="Search kits..." value={search} onChange={e => setSearch(e.target.value)} data-testid="input-search-kits" /></div><span className="bf-mono text-[10px] text-muted-foreground">{data?.length ?? '—'} SAVED</span></div>{isError ? <div className="bf-card-flat flex items-center justify-between p-5 text-sm"><span>We couldn't reach your archive.</span><button className="bf-btn bf-btn-quiet" onClick={() => refetch()} data-testid="button-retry-archive"><RefreshCw size={14} /> Retry</button></div> : isLoading ? <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">{[1,2,3].map(i => <div key={i} className="bf-card h-72 animate-pulse bg-muted" />)}</div> : shown.length === 0 ? <div className="bf-card flex min-h-64 flex-col items-center justify-center text-center"><FolderOpen size={24} className="text-muted-foreground" /><p className="mt-4 font-semibold">No kits match that search.</p><button className="bf-btn bf-btn-quiet mt-4" onClick={() => setSearch('')} data-testid="button-clear-search">Clear search</button></div> : <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">{shown.map(kit => <div className="bf-card group overflow-hidden" key={kit.id} data-testid={`card-saved-kit-${kit.id}`}><div className="grid h-36 grid-cols-5 gap-1.5 p-2" style={{ background: kit.primaryColor }}>{[kit.primaryColor,'#252A3D','#697080','#E7A77A','#F5F0E5'].map(c => <div key={c} className="rounded-lg" style={{ background: c }} />)}</div><div className="p-5"><div className="flex items-start justify-between"><div><h3 className="bf-display text-2xl font-bold">{kit.brandName}</h3><p className="mt-1 text-xs text-muted-foreground">{kit.industry}</p></div><span className="rounded bg-secondary px-2 py-1 bf-mono text-[9px]">{kit.primaryColor}</span></div><div className="mt-5 flex gap-2 border-t border-border pt-4"><button className="bf-btn bf-btn-primary flex-1" onClick={() => { localStorage.setItem('brandforge-current-kit', JSON.stringify(kit)); setLocation('/system'); }} data-testid={`button-open-kit-${kit.id}`}><FolderOpen size={14} /> Open</button><button className="bf-btn bf-btn-quiet px-3" onClick={() => duplicate(kit)} disabled={create.isPending} data-testid={`button-duplicate-kit-${kit.id}`}><Copy size={14} /></button>{kit.id >= 100 ? <span className="bf-btn bf-btn-quiet px-3 opacity-50" title="Sample kit"><Settings2 size={14} /></span> : <button className="bf-btn px-3 text-destructive hover:bg-destructive/10" onClick={() => { if (confirm(`Delete ${kit.brandName}?`)) remove.mutate({ id: kit.id }, { onSuccess: () => queryClient.invalidateQueries({ queryKey: getListBrandKitsQueryKey() }) }); }} data-testid={`button-delete-kit-${kit.id}`}><Trash2 size={14} /></button>}</div></div></div>)}</div>}</div>;
+  const { data, isLoading, isError, refetch } = useListBrandKits(); const queryClient = useQueryClient(); const remove = useDeleteBrandKit(); const create = useCreateBrandKit(); const [search, setSearch] = useState(''); const [, setLocation] = useLocation(); const [, refreshLocal] = useState(0);
+  const localKits = getLocalKits();
+  const sourceKits = data?.length ? data : (localKits.length ? localKits : sampleKits);
+  const kits = sourceKits.filter(k => `${k.brandName} ${k.industry}`.toLowerCase().includes(search.toLowerCase())); const shown = kits;
+  const duplicate = (kit: BrandKit) => create.mutate({ data: { ...kit, brandName: `${kit.brandName} / Copy`, tagline: kit.tagline, toneNotes: kit.toneNotes } }, { onSuccess: () => queryClient.invalidateQueries({ queryKey: getListBrandKitsQueryKey() }), onError: () => { saveLocalKit({ ...kit, brandName: `${kit.brandName} / Copy` }); refreshLocal((value) => value + 1); } });
+  return <div className="bf-content"><PageHeading eyebrow="Archive / Saved kits" title="Your little library." detail="Every sharp decision, kept close. Open a kit to revisit its system or duplicate it to explore a new direction." action={<Link href="/builder" className="bf-btn bf-btn-accent" data-testid="link-new-kit"><Plus size={15} /> New kit</Link>} /><div className="mb-6 flex items-center gap-3"><div className="relative max-w-sm flex-1"><Search size={15} className="absolute left-3 top-3.5 text-muted-foreground" /><input className="bf-input pl-9" placeholder="Search kits..." value={search} onChange={e => setSearch(e.target.value)} data-testid="input-search-kits" /></div><span className="bf-mono text-[10px] text-muted-foreground">{sourceKits.length} SAVED</span></div>{isError ? <div className="bf-card-flat mb-5 flex items-center justify-between p-5 text-sm"><span>Cloud archive unavailable — browser storage is active.</span><button className="bf-btn bf-btn-quiet" onClick={() => refetch()} data-testid="button-retry-archive"><RefreshCw size={14} /> Retry cloud</button></div> : null}{isLoading ? <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">{[1,2,3].map(i => <div key={i} className="bf-card h-72 animate-pulse bg-muted" />)}</div> : shown.length === 0 ? <div className="bf-card flex min-h-64 flex-col items-center justify-center text-center"><FolderOpen size={24} className="text-muted-foreground" /><p className="mt-4 font-semibold">No kits match that search.</p><button className="bf-btn bf-btn-quiet mt-4" onClick={() => setSearch('')} data-testid="button-clear-search">Clear search</button></div> : <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">{shown.map(kit => <div className="bf-card group overflow-hidden" key={kit.id} data-testid={`card-saved-kit-${kit.id}`}><div className="grid h-36 grid-cols-5 gap-1.5 p-2" style={{ background: kit.primaryColor }}>{[kit.primaryColor,'#252A3D','#697080','#E7A77A','#F5F0E5'].map((c, index) => <div key={`${c}-${index}`} className="rounded-lg" style={{ background: c }} />)}</div><div className="p-5"><div className="flex items-start justify-between"><div><h3 className="bf-display text-2xl font-bold">{kit.brandName}</h3><p className="mt-1 text-xs text-muted-foreground">{kit.industry}</p></div><span className="rounded bg-secondary px-2 py-1 bf-mono text-[9px]">{kit.primaryColor}</span></div><div className="mt-5 flex gap-2 border-t border-border pt-4"><button className="bf-btn bf-btn-primary flex-1" onClick={() => { localStorage.setItem('brandforge-current-kit', JSON.stringify(kit)); setLocation('/system'); }} data-testid={`button-open-kit-${kit.id}`}><FolderOpen size={14} /> Open</button><button className="bf-btn bf-btn-quiet px-3" onClick={() => duplicate(kit)} disabled={create.isPending} data-testid={`button-duplicate-kit-${kit.id}`}><Copy size={14} /></button>{kit.id >= 100 ? <span className="bf-btn bf-btn-quiet px-3 opacity-50" title="Sample kit"><Settings2 size={14} /></span> : <button className="bf-btn px-3 text-destructive hover:bg-destructive/10" onClick={() => { if (confirm(`Delete ${kit.brandName}?`)) { if (data?.length) remove.mutate({ id: kit.id }, { onSuccess: () => queryClient.invalidateQueries({ queryKey: getListBrandKitsQueryKey() }) }); else { removeLocalKit(kit.id); refreshLocal((value) => value + 1); } } }} data-testid={`button-delete-kit-${kit.id}`}><Trash2 size={14} /></button>}</div></div></div>)}</div>}</div>;
 }
 
 function ExportPage() {
