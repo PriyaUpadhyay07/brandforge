@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "BrandForge"
+description = "A polished design system generator that turns a brand name, industry, color, and personality into a complete visual identity with saved kits, live previews, AI brand voice, and exportable tokens."
+version = "1.0.0"
+id = "artifacts/brandforge"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 25356
+
+[services.development]
+run = "pnpm --filter @workspace/brandforge run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/brandforge", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/brandforge/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "25356"
+BASE_PATH = "/"

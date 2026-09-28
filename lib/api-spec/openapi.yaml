@@ -1,0 +1,267 @@
+openapi: 3.1.0
+info:
+  # Do not change the title, if the title changes, the import paths will be broken
+  title: Api
+  version: 0.1.0
+  description: API specification
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+  - name: brand-kits
+    description: Saved BrandForge design systems
+  - name: brand-voice
+    description: Optional AI brand voice generation
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      description: Returns server health status
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+  /brand-kits:
+    get:
+      operationId: listBrandKits
+      tags: [brand-kits]
+      summary: List saved brand kits
+      responses:
+        "200":
+          description: Saved brand kits
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/BrandKit"
+    post:
+      operationId: createBrandKit
+      tags: [brand-kits]
+      summary: Save a brand kit
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BrandKitInput"
+      responses:
+        "201":
+          description: Saved brand kit
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BrandKit"
+  /brand-kits/{id}:
+    get:
+      operationId: getBrandKit
+      tags: [brand-kits]
+      summary: Get a saved brand kit
+      parameters:
+        - $ref: "#/components/parameters/BrandKitId"
+      responses:
+        "200":
+          description: Brand kit
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BrandKit"
+        "404":
+          description: Brand kit not found
+    patch:
+      operationId: updateBrandKit
+      tags: [brand-kits]
+      summary: Update a saved brand kit
+      parameters:
+        - $ref: "#/components/parameters/BrandKitId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BrandKitUpdate"
+      responses:
+        "200":
+          description: Updated brand kit
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BrandKit"
+        "404":
+          description: Brand kit not found
+    delete:
+      operationId: deleteBrandKit
+      tags: [brand-kits]
+      summary: Delete a saved brand kit
+      parameters:
+        - $ref: "#/components/parameters/BrandKitId"
+      responses:
+        "204":
+          description: Brand kit deleted
+        "404":
+          description: Brand kit not found
+  /brand-voice:
+    post:
+      operationId: generateBrandVoice
+      tags: [brand-voice]
+      summary: Generate a tagline and tone guide
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BrandVoiceInput"
+      responses:
+        "200":
+          description: Generated brand voice
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BrandVoice"
+        "503":
+          description: AI provider unavailable
+components:
+  parameters:
+    BrandKitId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: number
+  schemas:
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+      required:
+        - status
+    BrandKit:
+      type: object
+      required:
+        - id
+        - brandName
+        - industry
+        - primaryColor
+        - personality
+        - headingFont
+        - bodyFont
+        - tagline
+        - toneNotes
+        - createdAt
+      properties:
+        id:
+          type: number
+        brandName:
+          type: string
+        industry:
+          type: string
+        primaryColor:
+          type: string
+        personality:
+          type: string
+        headingFont:
+          type: string
+        bodyFont:
+          type: string
+        tagline:
+          type: ["string", "null"]
+        toneNotes:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+    BrandKitInput:
+      type: object
+      required:
+        - brandName
+        - industry
+        - primaryColor
+        - personality
+        - headingFont
+        - bodyFont
+      properties:
+        brandName:
+          type: string
+          minLength: 1
+        industry:
+          type: string
+          minLength: 1
+        primaryColor:
+          type: string
+          pattern: "^#[0-9a-fA-F]{6}$"
+        personality:
+          type: string
+          minLength: 1
+        headingFont:
+          type: string
+          minLength: 1
+        bodyFont:
+          type: string
+          minLength: 1
+        tagline:
+          type: ["string", "null"]
+        toneNotes:
+          type: ["string", "null"]
+    BrandKitUpdate:
+      type: object
+      properties:
+        brandName:
+          type: string
+          minLength: 1
+        industry:
+          type: string
+          minLength: 1
+        primaryColor:
+          type: string
+          pattern: "^#[0-9a-fA-F]{6}$"
+        personality:
+          type: string
+          minLength: 1
+        headingFont:
+          type: string
+          minLength: 1
+        bodyFont:
+          type: string
+          minLength: 1
+        tagline:
+          type: ["string", "null"]
+        toneNotes:
+          type: ["string", "null"]
+    BrandVoiceInput:
+      type: object
+      required:
+        - brandName
+        - industry
+        - personality
+      properties:
+        brandName:
+          type: string
+        industry:
+          type: string
+        personality:
+          type: string
+    BrandVoice:
+      type: object
+      required:
+        - tagline
+        - toneGuidelines
+        - brandDescription
+      properties:
+        tagline:
+          type: string
+        toneGuidelines:
+          type: array
+          minItems: 3
+          maxItems: 3
+          items:
+            type: string
+        brandDescription:
+          type: string
+

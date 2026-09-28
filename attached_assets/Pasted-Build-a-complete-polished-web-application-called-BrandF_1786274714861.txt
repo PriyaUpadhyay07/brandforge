@@ -1,0 +1,58 @@
+Build a complete, polished web application called "BrandForge" — a design system generator that lets users create, preview, save, and export a fully custom brand design system in minutes.
+
+=== CORE CONCEPT ===
+BrandForge takes a few simple inputs from the user (brand name, industry, one primary color, and a "personality" preference) and automatically generates a complete, professional design system: a full color palette (10 shades from lightest to darkest, computed algorithmically — not hardcoded), a matching font pairing (heading + body font), a spacing/sizing scale, and a live gallery of real UI components (buttons, cards, badges, inputs, navbar, alerts, footer) all styled using the generated tokens. Think of it as "generate your own mini design system like Stripe or Linear has, but for your brand, in 30 seconds."
+
+=== TECH STACK (keep this simple and low-risk) ===
+- Frontend: React + Vite + TailwindCSS + Framer Motion for smooth transitions
+- Color math: use a lightweight JS color library (e.g. "chroma-js" or "colord") to programmatically generate tints/shades from the single primary color the user picks — DO NOT hardcode palettes, compute them mathematically (this must work offline with zero API calls and zero errors)
+- Backend: Node.js + Express, minimal routes only
+- Database: SQLite (via better-sqlite3) with ONE simple table called `brand_kits`:
+  columns: id, brand_name, industry, primary_color, personality (string), heading_font, body_font, tagline (nullable), tone_notes (nullable), created_at
+  Purpose of this table: lets users save multiple generated brand kits and revisit/edit them later — this is the "Connected" real-integration requirement, a genuine persistent backend, not fake local state.
+- AI Integration (KEEP THIS SMALL AND ISOLATED): use the Anthropic API for exactly ONE feature — generating a short brand tagline + 3-bullet tone-of-voice guide. This is a single non-streaming request/response call (NOT a chat interface), triggered by one button click. Input to the AI: brand name, industry, personality sliders. Output: JSON with { tagline: string, toneGuidelines: [3 short strings], brandDescription: 1-2 sentences }. If the AI call fails for any reason, the app must gracefully show a "Regenerate" button and default placeholder text — never crash or block the rest of the app. This isolation keeps token usage low and avoids chat-related bugs.
+
+=== DESIGN SYSTEM RULES (this IS the product, so it must be beautiful) ===
+- The app's OWN chrome (landing page, wizard, nav) should look like a premium SaaS design tool — dark charcoal background option, generous whitespace, soft shadows, rounded-xl corners, smooth micro-animations on hover/click.
+- Typography: use 2 well-paired Google Fonts for the app's own UI (e.g. a clean sans for body + a distinct display font for headings).
+- Include a light/dark mode toggle for the app itself.
+- All generated color palettes must be displayed as swatch strips with hex codes visible and a "copy hex" button on hover.
+
+=== PAGES / SCREENS (all required — this is the multi-screen requirement) ===
+1. **Landing Page** — Hero explaining BrandForge ("Generate a complete design system for your brand in 30 seconds"), 3-step visual explainer (Input → Generate → Export), a few example brand kit previews as visual cards, CTA "Start Building".
+2. **Brand Wizard Page** — A clean 3-step form: Step 1: brand name + industry (dropdown: Tech, Food & Beverage, Fashion, Health, Finance, Creative); Step 2: primary color picker (with live preview swatch); Step 3: personality sliders (Minimal ↔ Bold, Playful ↔ Serious, Modern ↔ Classic). Show a live preview panel on the side that updates in real time as the user adjusts inputs.
+3. **Generated Design System Page** (the core output page) — organized into clear sections:
+   a. Color Palette section: full 10-shade ramp generated from the primary color, plus auto-generated complementary/neutral colors, each with hex code and copy button
+   b. Typography section: the recommended font pairing rendered as actual live headings/body text samples at different sizes (H1–H6, body, caption)
+   c. Spacing & Radius scale: visual blocks showing the spacing system (4px–64px) and border-radius options
+   d. Component Gallery: real, working components styled with the generated tokens — primary/secondary/ghost buttons, a card component, input fields, badges/tags, an alert banner, a mini navbar, and a footer — all in a responsive grid so the user can see their design system "in action"
+   e. Brand Voice card: the AI-generated tagline + tone guidelines (with a "Regenerate with AI" button)
+4. **My Saved Kits Page** — Grid of all brand kits the user has saved (pulled from the SQLite database), each shown as a small card with its color swatch + name, with Open / Duplicate / Delete actions.
+5. **Export Page** — For the currently generated kit, offer three copyable/downloadable export formats: (1) CSS custom properties (:root variables), (2) Tailwind config snippet (theme.extend.colors etc.), (3) plain JSON design tokens file. Each with a "Copy to clipboard" button and a "Download file" button.
+
+=== SAMPLE DATA ===
+- Pre-seed the database with 4 example brand kits (different industries/colors/personalities) so the "My Saved Kits" and Landing page example cards are never empty on first load.
+
+=== INTERACTION / POLISH REQUIREMENTS ===
+- All color computations must update live/instantly as the user moves the color picker or sliders — no page reloads.
+- Add subtle loading skeletons only around the AI tagline card (since that's the only network-dependent part) — everything else (color math, fonts, spacing) must render instantly with zero loading state since it's all client-side computation.
+- Fully responsive for mobile and desktop.
+- Add proper empty states (e.g. "No saved kits yet — generate your first one") and error states.
+- No lorem ipsum anywhere — use real, sensible example brand names/industries in seed data (e.g. "Solace Coffee Co." - Food & Beverage, "Northgate Analytics" - Tech).
+- Add a favicon, page title "BrandForge — Design System Generator", and meta description.
+
+=== BUILD ORDER (follow this exact sequence to avoid errors) ===
+1. First set up the project structure, install chroma-js/colord and Tailwind, and build the color-math utility function (input: 1 hex color → output: 10-shade ramp + neutrals). Test this function works standalone before building any UI.
+2. Build the core design tokens display components (palette swatches, typography samples, spacing blocks, component gallery) using a hardcoded test color, so the visual system is proven correct first.
+3. Build the SQLite database and the save/load/delete CRUD routes, and seed the 4 example kits.
+4. Build the Brand Wizard page and wire it to generate real tokens live and save to the database.
+5. Build the Export page (CSS/Tailwind/JSON generation from tokens).
+6. LAST, add the single isolated AI tagline/tone-of-voice feature, with proper try/catch and fallback UI so it never breaks the rest of the app.
+7. Finally build the Landing Page using real seeded example kits for the preview cards.
+
+=== DEPLOYMENT ===
+- Ensure the app runs with a single "Run" click in Replit with no manual setup steps needed.
+- Store the Anthropic API key in Replit Secrets, never hardcoded.
+- Prepare for Replit's Publish/Deploy feature with a clean public URL.
+
+Build this step-by-step exactly in the order listed above, and show progress after each numbered step so I can verify before moving to the next.
