@@ -4,7 +4,7 @@ import { ErrorBoundary } from '@/components/error-boundary';
 import { Toaster } from '@/components/ui/toaster';
 import {
   AlertCircle, ArrowRight, BookOpen, Check, CheckCircle2, ChevronLeft, ChevronRight,
-  Copy, Download, FileCode2, FolderOpen, Layers3, LayoutDashboard, Linkedin, MoreHorizontal, Moon,
+  Copy, Download, FileCode2, FolderOpen, Layers3, LayoutDashboard, Linkedin, Menu, MoreHorizontal, Moon,
   Palette, Pencil, Plus, RefreshCw, Save, Search, Send, Settings2, SlidersHorizontal,
   Sparkles, Sun, Trash2, Type, Wand2, X, Zap
 } from 'lucide-react';
@@ -136,9 +136,18 @@ function Logo({ light = false }: { light?: boolean }) {
   return <Link href="/" className="flex items-center gap-2.5" data-testid="link-logo"><img src="/brandforge-bf.svg" alt="BF" className="h-8 w-8 shrink-0" /><span className={`bf-display text-[19px] font-bold tracking-tight ${light ? 'text-[#F5F0E5]' : 'text-foreground'}`}>brandforge</span></Link>;
 }
 
+function ContraMark() {
+  return <svg className="bf-contra-logo" viewBox="0 0 24 24" aria-hidden="true">
+    <path fill="currentColor" d="M12.25 4.25c-4.28 0-7.75 3.46-7.75 7.75s3.47 7.75 7.75 7.75c2.85 0 5.34-1.54 6.67-3.83l-3.24-1.87a3.96 3.96 0 0 1-3.43 1.98 4.03 4.03 0 0 1 0-8.06c1.46 0 2.75.79 3.43 1.98l3.24-1.87a7.73 7.73 0 0 0-6.67-3.83Z" />
+    <path fill="currentColor" d="M14.85 8.05h3.7v7.9h-3.7z" opacity=".7" />
+  </svg>;
+}
+
 function Shell({ children }: { children: ReactNode }) {
   const [location] = useLocation();
   const [dark, toggleTheme] = useTheme();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  useEffect(() => { setMobileMenuOpen(false); }, [location]);
   const nav = [
     { href: '/', label: 'Overview', icon: LayoutDashboard },
     { href: '/builder', label: 'New identity', icon: Wand2 },
@@ -158,7 +167,18 @@ function Shell({ children }: { children: ReactNode }) {
       <button className="mt-4 flex items-center gap-2 px-3 py-2 text-xs text-[#F5F0E5]/55 hover:text-[#F5F0E5]" onClick={toggleTheme} data-testid="button-toggle-theme">{dark ? <Sun size={14} /> : <Moon size={14} />}{dark ? 'Light mode' : 'Dark mode'}</button>
     </aside>
     <div className="bf-main">
-      <div className="bf-mobile-nav"><Logo light /><div className="bf-mobile-links">{nav.slice(1).map(({ href, icon: Icon }) => <Link key={href} href={href} data-active={location === href} data-testid={`link-mobile-${href.slice(1)}`}><Icon size={18} /></Link>)}<button onClick={toggleTheme} className="p-2 text-[#F5F0E5]/70" data-testid="button-mobile-theme">{dark ? <Sun size={17} /> : <Moon size={17} />}</button></div></div>
+      <div className="bf-mobile-nav">
+        <Logo light />
+        <button className="bf-menu-toggle" onClick={() => setMobileMenuOpen((open) => !open)} aria-expanded={mobileMenuOpen} aria-controls="mobile-navigation" aria-label={mobileMenuOpen ? 'Close navigation menu' : 'Open navigation menu'} data-testid="button-mobile-menu">
+          {mobileMenuOpen ? <X size={22} /> : <Menu size={22} />}
+        </button>
+      </div>
+      {mobileMenuOpen && <div id="mobile-navigation" className="bf-mobile-menu">
+        <nav className="bf-mobile-menu-list" aria-label="Mobile navigation">
+          {nav.map(({ href, label, icon: Icon }) => <Link key={href} href={href} className="bf-mobile-menu-link" data-active={location === href || (href !== '/' && location.startsWith(href))} data-testid={`link-mobile-${label.toLowerCase().replace(' ', '-')}`}><Icon size={17} /><span>{label}</span>{href === '/builder' && <span className="bf-mobile-new">NEW</span>}</Link>)}
+        </nav>
+        <button onClick={toggleTheme} className="bf-mobile-theme" data-testid="button-mobile-theme">{dark ? <Sun size={17} /> : <Moon size={17} />}{dark ? 'Light mode' : 'Dark mode'}</button>
+      </div>}
       {children}
     </div>
   </div>;
@@ -195,7 +215,7 @@ function Footer() {
     <div className="grid gap-10 md:grid-cols-[1.1fr_1fr_1fr]">
       <div><div className="bf-eyebrow">About BrandForge</div><p className="mt-4 max-w-sm text-sm leading-6 text-muted-foreground">BrandForge helps you turn a clear point of view into a useful visual identity.</p><p className="mt-2 max-w-sm text-sm leading-6 text-muted-foreground">It is a small creative desk for exploring color, type, and brand voice.</p></div>
       <div><div className="bf-eyebrow">About the builder</div><p className="mt-4 max-w-sm text-sm leading-6 text-muted-foreground">Hi, I&apos;m Priya Upadhyay, a UI/UX designer and AI product builder. I built BrandForge as a solo project to explore color theory in practical brand systems.</p></div>
-      <div><div className="bf-eyebrow">Say hello</div><p className="mt-4 text-sm leading-6 text-muted-foreground">Have an idea or want to connect? Feel free to reach out.</p><div className="mt-4 flex flex-wrap gap-2"><a className="bf-social-link" href="mailto:upadhyaypriya974@gmail.com" aria-label="Email Priya"><SiGmail size={16} /> Email</a><a className="bf-social-link" href="https://www.linkedin.com/in/priya-upadhyay68" target="_blank" rel="noreferrer" aria-label="Priya on LinkedIn"><Linkedin size={16} /> LinkedIn</a><a className="bf-social-link" href="https://contra.com/priya_upadhyay_bkxvxwme?referralExperimentNid=DEFAULT_REFERRAL_PROGRAM&referrerUsername=priya_upadhyay_bkxvxwme" target="_blank" rel="noreferrer" aria-label="Priya on Contra"><span className="bf-contra-mark">C</span> Contra</a></div></div>
+      <div><div className="bf-eyebrow">Say hello</div><p className="mt-4 text-sm leading-6 text-muted-foreground">Have an idea or want to connect? Feel free to reach out.</p><div className="mt-4 flex flex-wrap gap-2"><a className="bf-social-link bf-email-link" href="mailto:upadhyaypriya974@gmail.com?subject=Hello%20from%20BrandForge" aria-label="Email Priya at upadhyaypriya974@gmail.com" data-testid="link-footer-email"><SiGmail size={16} /> <span>upadhyaypriya974@gmail.com</span></a><a className="bf-social-link" href="https://www.linkedin.com/in/priya-upadhyay68" target="_blank" rel="noreferrer" aria-label="Priya on LinkedIn"><Linkedin size={16} /> LinkedIn</a><a className="bf-social-link" href="https://contra.com/priya_upadhyay_bkxvxwme?referralExperimentNid=DEFAULT_REFERRAL_PROGRAM&referrerUsername=priya_upadhyay_bkxvxwme" target="_blank" rel="noreferrer" aria-label="Priya on Contra" data-testid="link-footer-contra"><ContraMark /> Contra</a></div></div>
     </div>
     <div className="mt-10 flex items-center justify-between border-t border-border pt-4 bf-mono text-[10px] text-muted-foreground"><span>BRANDFORGE</span><span>Built with care by Priya Upadhyay</span></div>
   </footer>;
